@@ -1,7 +1,7 @@
-# 社労士向け 端末台帳＆労務セキュリティチェッカー (Demo v1.0.0)
+# 社労士向け 端末台帳＆労務セキュリティチェッカー (Demo v0.1)
 
 [![Demo](https://img.shields.io/badge/Status-DEMO-amber.svg)](https://github.com/)
-[![Version](https://img.shields.io/badge/Version-1.0.0-sky.svg)](https://github.com/)
+[![Version](https://img.shields.io/badge/Version-0.1-sky.svg)](https://github.com/)
 [![License](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 
 社会保険労務士（社労士）の先生方および顧問先企業向けに特化した、**ブラウザ完結型のIT端末台帳＆労務セキュリティリスク診断ツール（デモ版）**です。
@@ -46,7 +46,7 @@
 1. **GitHubリポジトリを作成**:
    ```bash
    git add .
-   git commit -m "Initial commit: 社労士向け 端末台帳＆労務セキュリティチェッカー v1.0.0"
+   git commit -m "Initial commit: 社労士向け 端末台帳＆労務セキュリティチェッカー v0.1"
    git remote add origin https://github.com/<YOUR_ACCOUNT>/<REPO_NAME>.git
    git branch -M main
    git push -u origin main
@@ -66,7 +66,7 @@
 
 ## 📋 バージョン履歴
 
-* **v1.0.0 (Demo Release - 2026.09.15)**:
+* **v0.1 (Demo Release - 2026.09.15)**:
   * 初回リリース（デモ版）
   * 人事台帳 × 端末台帳の自動リスク診断エンジン実装
   * 顧問先向けA4提出用レポート印刷機能
