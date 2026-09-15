@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>社労士向け 端末台帳＆労務セキュリティチェッカー [DEMO v1.0.0]</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background: white !important; color: black !important; font-size: 12pt; }
+      .page-break { page-break-before: always; }
+      .shadow, .shadow-md, .shadow-lg, .shadow-sm { box-shadow: none !important; border: 1px solid #cbd5e1 !important; }
+    }
+    .print-only { display: none; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+  <!-- ヘッダー -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- ロゴ & タイトル -->
+        <div class="flex items-center space-x-3">
+          <div class="bg-sky-500 p-2 rounded-lg text-white shadow-sm flex items-center justify-center">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-lg tracking-tight">社労士向け 端末台帳＆労務セキュリティチェッカー</span>
+              <span class="bg-amber-400 text-slate-900 text-xs font-black px-2 py-0.5 rounded-full uppercase tracking-wider">DEMO</span>
+              <span class="bg-slate-800 text-sky-400 text-xs font-mono font-medium px-2 py-0.5 rounded border border-slate-700">v1.0.0</span>
+            </div>
+            <p class="text-xs text-slate-400 hidden sm:block">顧問先のIT資産管理・退職時回収漏れ・テレワーク規程コンプライアンス診断</p>
+          </div>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <button id="btn-load-demo" onclick="app.loadDemoData()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-medium rounded-md shadow transition flex items-center space-x-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span>デモデータ再読込</span>
+          </button>
+          <button onclick="app.openHelpModal()" class="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 transition" title="このツールについて">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ナビゲーションタブ -->
+      <nav class="flex space-x-1 sm:space-x-6 border-t border-slate-800 overflow-x-auto py-2">
+        <button onclick="app.switchTab('dashboard')" id="tab-btn-dashboard" class="tab-btn active px-3 py-1.5 text-sm font-semibold rounded-md text-white bg-slate-800 flex items-center space-x-1.5 shrink-0">
+          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          <span>労務リスク診断</span>
+          <span id="badge-total-risks" class="ml-1 px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-xs">0</span>
+        </button>
+        <button onclick="app.switchTab('devices')" id="tab-btn-devices" class="tab-btn px-3 py-1.5 text-sm font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+          <span>端末台帳</span>
+          <span id="badge-device-count" class="text-xs bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">0</span>
+        </button>
+        <button onclick="app.switchTab('employees')" id="tab-btn-employees" class="tab-btn px-3 py-1.5 text-sm font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          <span>社員名簿 (人事台帳)</span>
+          <span id="badge-employee-count" class="text-xs bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">0</span>
+        </button>
+        <button onclick="app.switchTab('report')" id="tab-btn-report" class="tab-btn px-3 py-1.5 text-sm font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5 shrink-0">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <span>顧問先提出レポート (印刷/PDF)</span>
+        </button>
+        <button onclick="app.switchTab('settings')" id="tab-btn-settings" class="tab-btn px-3 py-1.5 text-sm font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span>データ管理・CSV</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- デモ注意バナー -->
+  <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-900 flex items-center justify-between no-print">
+    <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-900">DEMO MODE</span>
+        <span>ブラウザ完結型デモ環境です。入力データはお使いの端末のブラウザ内（LocalStorage）にのみ安全に保持されます。</span>
+      </div>
+      <div class="text-amber-800 font-mono text-xs hidden sm:block">
+        Version: <strong>1.0.0</strong> | Updated: 2026.09.15
+      </div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+    <!-- ============================================== -->
+    <!-- TAB 1: 労務リスク診断ダッシュボード -->
+    <!-- ============================================== -->
+    <section id="section-dashboard" class="tab-content space-y-6">
+      <!-- 総合スコア＆サマリー -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded">労務監査・セキュリティ診断</span>
+            <h2 class="text-2xl font-bold text-slate-900 mt-1">端末台帳 × 労務リスク診断結果</h2>
+            <p class="text-sm text-slate-500 mt-0.5">人事情報（社員台帳）とIT端末台帳を自動突合し、法務・労務・情報漏洩リスクを抽出しました。</p>
+          </div>
+          <div class="flex items-center space-x-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div class="text-center">
+              <span class="text-xs text-slate-500 block">総合リスク評価</span>
+              <span id="summary-rank" class="text-3xl font-black text-rose-600">D</span>
+            </div>
+            <div class="border-l border-slate-200 pl-4">
+              <span id="summary-rank-text" class="text-sm font-bold text-rose-700 block">要至急改善（重大リスクあり）</span>
+              <span id="summary-rank-desc" class="text-xs text-slate-500">退職者の端末未回収や誓約書未取得が検知されています。</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI 4カード -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <span class="text-xs font-medium text-slate-500 block">管理端末総数</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <span id="kpi-total-devices" class="text-2xl font-bold text-slate-800">0</span>
+              <span class="text-xs text-slate-500">台</span>
+            </div>
+            <span id="kpi-loaned-devices" class="text-xs text-slate-500 mt-1 block">貸与中: 0台 / 保管: 0台</span>
+          </div>
+
+          <div class="bg-rose-50 p-4 rounded-lg border border-rose-200">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-rose-800 block">🚨 退職者未返却</span>
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            </div>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <span id="kpi-retired-unreturned" class="text-2xl font-bold text-rose-700">0</span>
+              <span class="text-xs text-rose-600">件</span>
+            </div>
+            <span class="text-xs text-rose-600 mt-1 block">情報漏洩・横領リスク極大</span>
+          </div>
+
+          <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+            <span class="text-xs font-bold text-amber-800 block">⚠️ 誓約書 未回収</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <span id="kpi-pledge-missing" class="text-2xl font-bold text-amber-700">0</span>
+              <span class="text-xs text-amber-600">件</span>
+            </div>
+            <span class="text-xs text-amber-600 mt-1 block">貸与誓約書・秘密保持なし</span>
+          </div>
+
+          <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+            <span class="text-xs font-bold text-orange-800 block">🔒 テレワーク規程不備</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <span id="kpi-security-inadequate" class="text-2xl font-bold text-orange-700">0</span>
+              <span class="text-xs text-orange-600">件</span>
+            </div>
+            <span class="text-xs text-orange-600 mt-1 block">持ち出し時暗号化・対策未済</span>
+          </div>
+
+          <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 col-span-2 lg:col-span-1">
+            <span class="text-xs font-bold text-indigo-800 block">👤 幽霊端末・台帳不整合</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+              <span id="kpi-ghost-devices" class="text-2xl font-bold text-indigo-700">0</span>
+              <span class="text-xs text-indigo-600">件</span>
+            </div>
+            <span class="text-xs text-indigo-600 mt-1 block">在籍外名義・未登録使用者</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 検出されたリスク一覧テーブル -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50">
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg flex items-center space-x-2">
+              <span>要対応リスク項目リスト</span>
+              <span id="risk-table-count" class="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-bold">0件</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">直ちに対処が必要な端末と、社労士としての推奨是正アクションです。</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <select id="filter-risk-category" onchange="app.renderRiskList()" class="text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white text-slate-700">
+              <option value="ALL">すべてのリスクを表示</option>
+              <option value="RETIRED">🚨 退職者の端末未回収</option>
+              <option value="GHOST">👤 幽霊端末・使用者不整合</option>
+              <option value="PLEDGE">📋 誓約書未回収</option>
+              <option value="SECURITY">🔒 暗号化・セキュリティ不備</option>
+              <option value="INVENTORY">📅 棚卸し期限超過</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-100 text-slate-600 font-semibold text-xs text-left">
+              <tr>
+                <th class="py-3 px-4">重要度</th>
+                <th class="py-3 px-4">リスク分類</th>
+                <th class="py-3 px-4">対象端末</th>
+                <th class="py-3 px-4">使用者・社員名</th>
+                <th class="py-3 px-4">検知理由</th>
+                <th class="py-3 px-4">社労士・法務 推奨アクション</th>
+                <th class="py-3 px-4 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="risk-table-body" class="divide-y divide-slate-100 bg-white">
+              <!-- JSで動的描画 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 社労士コンサルティング・アドバイスBOX -->
+      <div class="bg-gradient-to-br from-sky-50 to-indigo-50 border border-sky-200 rounded-xl p-6">
+        <div class="flex items-start space-x-4">
+          <div class="p-3 bg-sky-600 text-white rounded-lg shadow-sm shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          </div>
+          <div>
+            <h4 class="text-base font-bold text-slate-900">社労士視点での顧問先アドバイス指針</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 text-xs text-slate-700">
+              <div class="bg-white/80 p-3 rounded-md border border-sky-100">
+                <strong class="text-sky-900 block font-semibold mb-1">1. 退職手続きの厳格化</strong>
+                退職届受理時に「端末・鍵・カード返却チェックシート」を必須化し、最終出社日までに回収・初期化を完了させる規定を整えましょう。
+              </div>
+              <div class="bg-white/80 p-3 rounded-md border border-sky-100">
+                <strong class="text-sky-900 block font-semibold mb-1">2. テレワーク規程と誓約書</strong>
+                端末貸与時の誓約書（秘密保持、目的外使用禁止、私的利用禁止）未締結はトラブルの元です。全貸与者から再取得を促します。
+              </div>
+              <div class="bg-white/80 p-3 rounded-md border border-sky-100">
+                <strong class="text-sky-900 block font-semibold mb-1">3. 半期ごとの実地棚卸</strong>
+                台帳上の名義と実際の使用者のズレ（幽霊端末）は不正の温床です。半期ごとの現物確認と写真提出ルールの導入を提案します。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 2: 端末台帳 (IT資産一覧) -->
+    <!-- ============================================== -->
+    <section id="section-devices" class="tab-content space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <!-- テーブルツールバー -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div class="flex items-center space-x-3">
+            <h2 class="text-xl font-bold text-slate-800">登録端末一覧</h2>
+            <span id="devices-count-label" class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">全 0 件</span>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- 検索フィルター -->
+            <input type="text" id="search-devices" oninput="app.renderDevicesTable()" placeholder="端末番号、使用者名、型番で検索..." class="text-xs border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 w-48 sm:w-64">
+            
+            <select id="filter-device-status" onchange="app.renderDevicesTable()" class="text-xs border border-slate-300 rounded-md px-2.5 py-1.5 bg-white">
+              <option value="ALL">全ステータス</option>
+              <option value="貸与中">貸与中</option>
+              <option value="保管中">保管中（社内）</option>
+              <option value="修理中">修理中</option>
+              <option value="廃棄">廃棄済</option>
+            </select>
+
+            <select id="filter-device-risk" onchange="app.renderDevicesTable()" class="text-xs border border-slate-300 rounded-md px-2.5 py-1.5 bg-white text-rose-700 font-medium">
+              <option value="ALL">全端末</option>
+              <option value="RISK_ONLY">⚠️ リスクあり端末のみ</option>
+            </select>
+
+            <button onclick="app.openDeviceModal()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-md shadow-sm flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              <span>新規端末追加</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 端末テーブル -->
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full divide-y divide-slate-200 text-xs">
+            <thead class="bg-slate-100 text-slate-600 font-semibold text-left">
+              <tr>
+                <th class="py-2.5 px-3">管理番号</th>
+                <th class="py-2.5 px-3">機器種別</th>
+                <th class="py-2.5 px-3">メーカー / モデル</th>
+                <th class="py-2.5 px-3">使用者 (社員名)</th>
+                <th class="py-2.5 px-3">所属部署</th>
+                <th class="py-2.5 px-3">ステータス</th>
+                <th class="py-2.5 px-3">貸与日</th>
+                <th class="py-2.5 px-3 text-center">社外持出</th>
+                <th class="py-2.5 px-3 text-center">暗号化</th>
+                <th class="py-2.5 px-3 text-center">誓約書</th>
+                <th class="py-2.5 px-3">労務リスク判定</th>
+                <th class="py-2.5 px-3 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="devices-table-body" class="divide-y divide-slate-100 bg-white">
+              <!-- JS動的生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 3: 社員名簿 (人事台帳) -->
+    <!-- ============================================== -->
+    <section id="section-employees" class="tab-content space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <div class="flex items-center space-x-3">
+              <h2 class="text-xl font-bold text-slate-800">社員名簿 (人事台帳)</h2>
+              <span id="employees-count-label" class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">全 0 名</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">入退社・休職・雇用形態などの人事ステータスを管理し、端末貸与台帳と常時突合します。</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="search-employees" oninput="app.renderEmployeesTable()" placeholder="社員番号、氏名、部署で検索..." class="text-xs border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500 w-48 sm:w-64">
+            
+            <select id="filter-employee-status" onchange="app.renderEmployeesTable()" class="text-xs border border-slate-300 rounded-md px-2.5 py-1.5 bg-white">
+              <option value="ALL">全在籍状況</option>
+              <option value="在籍中">在籍中</option>
+              <option value="退職予定">退職予定</option>
+              <option value="退職済">退職済</option>
+              <option value="休職中">休職中</option>
+            </select>
+
+            <button onclick="app.openEmployeeModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-md shadow-sm flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+              <span>新規社員追加</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 社員テーブル -->
+        <div class="overflow-x-auto mt-4">
+          <table class="min-w-full divide-y divide-slate-200 text-xs">
+            <thead class="bg-slate-100 text-slate-600 font-semibold text-left">
+              <tr>
+                <th class="py-2.5 px-3">社員番号</th>
+                <th class="py-2.5 px-3">氏名</th>
+                <th class="py-2.5 px-3">部署</th>
+                <th class="py-2.5 px-3">役職</th>
+                <th class="py-2.5 px-3">雇用区分</th>
+                <th class="py-2.5 px-3">在籍状況</th>
+                <th class="py-2.5 px-3">入社日</th>
+                <th class="py-2.5 px-3">退職日</th>
+                <th class="py-2.5 px-3">割当端末数</th>
+                <th class="py-2.5 px-3">労務突合ステータス</th>
+                <th class="py-2.5 px-3 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="employees-table-body" class="divide-y divide-slate-100 bg-white">
+              <!-- JS動的生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 4: 顧問先提出レポート (印刷/PDF) -->
+    <!-- ============================================== -->
+    <section id="section-report" class="tab-content space-y-6 hidden">
+      <!-- 印刷コントロールバー (画面上のみ表示) -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div>
+          <h3 class="font-bold text-slate-800">顧問先企業 提出用診断レポート</h3>
+          <p class="text-xs text-slate-500">この画面の内容をそのままA4印刷またはPDF保存して、顧問先へのアドバイス資料として活用できます。</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="window.print()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center space-x-1.5 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            <span>レポートを印刷 / PDF保存</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- レポート本体 (印刷領域) -->
+      <div class="bg-white p-8 sm:p-12 rounded-xl shadow-md border border-slate-200 print:border-none print:shadow-none print:p-0 max-w-4xl mx-auto space-y-8 text-slate-800">
+        
+        <!-- レポート表題 -->
+        <div class="border-b-2 border-slate-900 pb-6">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-xs font-semibold tracking-widest text-slate-500 uppercase">LABOR & IT ASSET COMPLIANCE REPORT</span>
+              <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">IT資産管理・労務セキュリティ診断報告書</h1>
+              <p class="text-sm text-slate-600 mt-1">端末貸与状況およびテレワーク規程遵守に関する是正診断サマリー</p>
+            </div>
+            <div class="text-right">
+              <span class="inline-block bg-slate-900 text-white text-xs px-2.5 py-1 rounded font-mono font-bold">DEMO v1.0.0</span>
+              <p class="text-xs text-slate-500 mt-2">診断日: <span id="report-date">2026年9月15日</span></p>
+            </div>
+          </div>
+
+          <!-- 企業情報入力欄（画面編集可能） -->
+          <div class="grid grid-cols-2 gap-4 mt-6 p-4 bg-slate-50 rounded-lg text-xs">
+            <div>
+              <span class="text-slate-500 block">対象企業様名:</span>
+              <input type="text" id="report-company-name" value="株式会社 サンプル商事 御中" class="font-bold text-sm bg-transparent border-b border-slate-300 w-full focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <span class="text-slate-500 block">診断実施者 (社会保険労務士):</span>
+              <input type="text" id="report-sharoushi-name" value="ひまわり社会保険労務士法人 担当労務コンサルタント" class="font-bold text-sm bg-transparent border-b border-slate-300 w-full focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- 診断サマリー・総合判定 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
+            <span class="text-xs font-bold text-slate-500 block">総合評価ランク</span>
+            <span id="report-score-rank" class="text-5xl font-black text-rose-600 my-2 block">D</span>
+            <span id="report-score-title" class="text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded">要至急改善</span>
+          </div>
+          <div class="md:col-span-2 space-y-2 text-xs">
+            <h4 class="font-bold text-sm text-slate-900">診断総評:</h4>
+            <p class="text-slate-700 leading-relaxed">
+              今回の診断において、<strong>退職者からの端末未回収</strong>および<strong>情報機器貸与誓約書の未回収</strong>が確認されました。
+              これらの放置は、機密情報・個人データの漏洩事故や、退職者による不正利用・業務妨害等の重大な法的リスクにつながります。
+              以下の是正勧告事項に沿って、早急な回収および社内規程の整備を強く推奨いたします。
+            </p>
+          </div>
+        </div>
+
+        <!-- 現状の指標統計 -->
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-3 pb-1 border-b border-slate-200">1. IT資産・貸与状況の統計</h3>
+          <div class="grid grid-cols-4 gap-3 text-center text-xs">
+            <div class="p-3 bg-slate-50 rounded border border-slate-200">
+              <span class="text-slate-500 block">台帳登録端末数</span>
+              <strong id="rep-stat-total" class="text-xl text-slate-900 block mt-1">0</strong>
+            </div>
+            <div class="p-3 bg-slate-50 rounded border border-slate-200">
+              <span class="text-slate-500 block">貸与中</span>
+              <strong id="rep-stat-loaned" class="text-xl text-sky-700 block mt-1">0</strong>
+            </div>
+            <div class="p-3 bg-slate-50 rounded border border-slate-200">
+              <span class="text-slate-500 block">社内保管中</span>
+              <strong id="rep-stat-stored" class="text-xl text-slate-700 block mt-1">0</strong>
+            </div>
+            <div class="p-3 bg-rose-50 rounded border border-rose-200">
+              <span class="text-rose-600 font-bold block">重大リスク件数</span>
+              <strong id="rep-stat-risks" class="text-xl text-rose-700 block mt-1">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 重要是正勧告リスト -->
+        <div>
+          <h3 class="font-bold text-base text-slate-900 mb-3 pb-1 border-b border-slate-200">2. 発見された主要リスクと是正勧告</h3>
+          <div id="report-risk-items" class="space-y-3 text-xs">
+            <!-- 動的挿入 -->
+          </div>
+        </div>
+
+        <!-- 社労士のアドバイス・規程改定の提言 -->
+        <div class="page-break">
+          <h3 class="font-bold text-base text-slate-900 mb-3 pb-1 border-b border-slate-200">3. 労務管理体制・就業規則改善のご提案</h3>
+          <div class="space-y-3 text-xs text-slate-700">
+            <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <h5 class="font-bold text-slate-900 text-sm mb-1">① 退職時における貸与品返却プロセスの規程化</h5>
+              <p class="leading-relaxed">
+                就業規則の退職条項、および「情報機器管理規程」を改定し、「退職日までにすべての貸与機器およびアクセス権限を返却・消去する義務」を明文化します。また、返却完了を退職金支給や離職証明手続きのチェック要件とする運用フローを策定します。
+              </p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <h5 class="font-bold text-slate-900 text-sm mb-1">② テレワーク・持ち出し許可の定期更新制と誓約書の締結</h5>
+              <p class="leading-relaxed">
+                社外持ち出しは「事前許可制（年1回更新）」とし、私物端末の無許可利用（シャドーIT/BYOD）を厳禁とします。貸与時には必ず「端末貸与誓約書（暗号化の維持、紛失時の即時報告義務など）」を徴収します。
+              </p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <h5 class="font-bold text-slate-900 text-sm mb-1">③ 定期棚卸し（半期ごと）の義務付け</h5>
+              <p class="leading-relaxed">
+                台帳上の名義と実際の所持者の不一致を防止するため、毎年4月と10月に全従業員を対象とした「現物棚卸し点検（シリアル番号の目視確認・セキュリティパッチ適用確認）」の実施をご提案します。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 担当社労士署名欄 -->
+        <div class="pt-8 border-t border-slate-200 flex justify-between text-xs text-slate-500">
+          <div>
+            <span>※ 本診断結果は台帳登録データに基づく簡易監査レポートです。詳細な規程策定・法務相談は当事務所までお問い合わせください。</span>
+          </div>
+          <div class="text-right font-mono">
+            <span>Powered by IT Asset Manager for SR [Demo v1.0.0]</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 5: データ管理・CSVインポート/エクスポート -->
+    <!-- ============================================== -->
+    <section id="section-settings" class="tab-content space-y-6 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">データ管理＆CSV連携</h2>
+          <p class="text-xs text-slate-500 mt-1">台帳データのCSVエクスポート・インポート、およびデモデータの管理を行います。</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- CSV エクスポート -->
+          <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 space-y-3">
+            <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+              <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>CSV形式でダウンロード</span>
+            </h3>
+            <p class="text-xs text-slate-600">現在ブラウザ内に保存されているデータをCSVファイルとして出力します。</p>
+            <div class="flex flex-wrap gap-2 pt-2">
+              <button onclick="app.exportCSV('devices')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded shadow-sm">
+                端末台帳 CSV出力
+              </button>
+              <button onclick="app.exportCSV('employees')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded shadow-sm">
+                社員名簿 CSV出力
+              </button>
+              <button onclick="app.exportCSV('risks')" class="px-3 py-1.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-xs font-medium rounded shadow-sm">
+                労務リスク一覧 CSV出力
+              </button>
+            </div>
+          </div>
+
+          <!-- CSV インポート -->
+          <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 space-y-3">
+            <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+              <span>CSVファイルの取り込み</span>
+            </h3>
+            <p class="text-xs text-slate-600">既存の端末台帳または社員名簿のCSVファイルを読み込みます。</p>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">端末台帳 CSV:</label>
+                <input type="file" id="import-devices-file" accept=".csv" class="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                <button onclick="app.importCSV('devices')" class="ml-2 px-2.5 py-1 bg-slate-800 text-white text-xs rounded">取込</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- データ初期化・デモ復元 -->
+        <div class="border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h4 class="font-bold text-sm text-slate-800">デモデータ・ストレージの初期化</h4>
+            <p class="text-xs text-slate-500">サンプルシナリオ（リアルな中小企業データ）の復元、または全データのリセットが行えます。</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button onclick="app.loadDemoData()" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-md shadow-sm">
+              デモ用データを再読込する
+            </button>
+            <button onclick="app.clearAllData()" class="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-md shadow-sm">
+              全データをクリア（初期化）
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-8 no-print text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-slate-700">社労士向け 端末台帳＆労務セキュリティチェッカー</span>
+        <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">デモ版 (Client-Side Demo)</span>
+      </div>
+      <div>
+        <span>Version <strong>1.0.0</strong> | 最終更新: 2026年9月15日</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================== -->
+  <!-- MODAL: 端末追加 / 編集 -->
+  <!-- ============================================== -->
+  <div id="device-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="device-modal-title" class="text-lg font-bold text-slate-900">端末情報の追加</h3>
+        <button onclick="app.closeDeviceModal()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <form id="device-form" onsubmit="app.saveDevice(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="form-device-id">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">管理番号 <span class="text-rose-500">*</span></label>
+            <input type="text" id="form-device-code" required placeholder="例: PC-2024-001" class="w-full border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">機器種別 <span class="text-rose-500">*</span></label>
+            <select id="form-device-type" required class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="ノートPC">ノートPC</option>
+              <option value="デスクトップPC">デスクトップPC</option>
+              <option value="スマートフォン">スマートフォン</option>
+              <option value="タブレット">タブレット</option>
+              <option value="モバイルWi-Fiルーター">モバイルWi-Fiルーター</option>
+              <option value="外部記憶媒体(USB等)">外部記憶媒体(USB等)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">メーカー / モデル</label>
+            <input type="text" id="form-device-model" placeholder="例: ThinkPad X1 / MacBook Air" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">OS / バージョン</label>
+            <input type="text" id="form-device-os" placeholder="例: Windows 11 Pro / macOS 14" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">使用者名 (社員)</label>
+            <input type="text" id="form-device-user" placeholder="例: 山田 太郎" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">所属部署</label>
+            <input type="text" id="form-device-dept" placeholder="例: 営業部 / 総務部" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">ステータス <span class="text-rose-500">*</span></label>
+            <select id="form-device-status" required class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="貸与中">貸与中</option>
+              <option value="保管中">保管中（社内）</option>
+              <option value="修理中">修理中</option>
+              <option value="廃棄">廃棄済</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">貸与開始日</label>
+            <input type="date" id="form-device-loandate" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <!-- セキュリティ＆労務管理フラグ -->
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+          <span class="font-bold text-slate-800 block">労務・セキュリティチェック項目</span>
+          
+          <div class="flex items-center justify-between">
+            <span class="text-slate-700">社外持ち出し・テレワーク許可:</span>
+            <select id="form-device-takeout" class="border border-slate-300 rounded px-2 py-1 text-xs">
+              <option value="あり">あり（許可済）</option>
+              <option value="なし">なし（社内限定）</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-slate-700">ストレージ暗号化 (BitLocker/FileVault):</span>
+            <select id="form-device-encrypted" class="border border-slate-300 rounded px-2 py-1 text-xs">
+              <option value="設定済">設定済</option>
+              <option value="未設定">未設定 (危険)</option>
+              <option value="対象外">対象外</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-slate-700">情報機器貸与誓約書の回収:</span>
+            <select id="form-device-pledge" class="border border-slate-300 rounded px-2 py-1 text-xs">
+              <option value="回収済">回収済</option>
+              <option value="未回収">未回収 (要提出)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-slate-700">最終棚卸・現物点検日:</span>
+            <input type="date" id="form-device-lastcheck" class="border border-slate-300 rounded px-2 py-1 text-xs">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">備考 / 特記事項</label>
+          <textarea id="form-device-memo" rows="2" placeholder="例: 退職時に要回収、モニター付帯など" class="w-full border border-slate-300 rounded px-2.5 py-1.5"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="app.closeDeviceModal()" class="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded shadow-sm">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: 社員追加 / 編集 -->
+  <!-- ============================================== -->
+  <div id="employee-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="employee-modal-title" class="text-lg font-bold text-slate-900">社員情報の追加</h3>
+        <button onclick="app.closeEmployeeModal()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <form id="employee-form" onsubmit="app.saveEmployee(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="form-emp-id">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">社員番号 <span class="text-rose-500">*</span></label>
+            <input type="text" id="form-emp-code" required placeholder="例: EMP-001" class="w-full border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">氏名 <span class="text-rose-500">*</span></label>
+            <input type="text" id="form-emp-name" required placeholder="例: 山田 太郎" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">部署</label>
+            <input type="text" id="form-emp-dept" placeholder="例: 営業第一部" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">役職</label>
+            <input type="text" id="form-emp-role" placeholder="例: 主任 / 一般" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">雇用区分</label>
+            <select id="form-emp-type" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="正社員">正社員</option>
+              <option value="契約社員">契約社員</option>
+              <option value="パート・アルバイト">パート・アルバイト</option>
+              <option value="業務委託">業務委託 (外注)</option>
+              <option value="派遣社員">派遣社員</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">在籍状況 <span class="text-rose-500">*</span></label>
+            <select id="form-emp-status" required class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+              <option value="在籍中">在籍中</option>
+              <option value="退職予定">退職予定 (注意)</option>
+              <option value="退職済">退職済 (要回収)</option>
+              <option value="休職中">休職中</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">入社日</label>
+            <input type="date" id="form-emp-joindate" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">退職日 (予定日含む)</label>
+            <input type="date" id="form-emp-retiredate" class="w-full border border-slate-300 rounded px-2.5 py-1.5">
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="app.closeEmployeeModal()" class="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded">キャンセル</button>
+          <button type="submit" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded shadow-sm">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: ヘルプ＆概要説明 -->
+  <!-- ============================================== -->
+  <div id="help-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <h3 class="text-lg font-bold text-slate-900">このツールについて</h3>
+          <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">Demo v1.0.0</span>
+        </div>
+        <button onclick="app.closeHelpModal()" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="text-xs text-slate-700 space-y-3 leading-relaxed">
+        <p><strong>【開発目的】</strong><br>
+          顧問先企業の「退職者からのPC未回収」「テレワーク中の端末セキュリティ不備」「秘密保持誓約書の漏れ」などを、社労士がワンクリックで監査・診断し、是正レポートを提示できる実務支援ツールです。
+        </p>
+        <p><strong>【主な機能】</strong><br>
+          ・<strong>自動リスク監査</strong>: 人事データと端末台帳の不整合（退職済なのに貸与中、幽霊端末、誓約書未取得など）を瞬時に検知<br>
+          ・<strong>提出用レポート印刷</strong>: A4形式で顧問先に渡せる診断結果と労務改善アドバイスを出力<br>
+          ・<strong>完全クライアントサイド実行</strong>: 外部サーバーやデータベースとの通信を行わないため、顧問先の個人情報・機密情報を安全に取り扱えます。
+        </p>
+        <div class="p-3 bg-slate-50 rounded border border-slate-200">
+          <strong>バージョン情報:</strong> v1.0.0 (Demo Release)<br>
+          <strong>更新日:</strong> 2026年9月15日<br>
+          <strong>公開ホスティング:</strong> Cloudflare Pages 対応
+        </div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="app.closeHelpModal()" class="px-4 py-1.5 bg-slate-900 text-white rounded text-xs font-semibold">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- JAVASCRIPT APP LOGIC -->
+  <!-- ============================================== -->
+  <script>
+    const APP_STORAGE_KEY_DEVICES = 'sr_checker_devices_v1';
+    const APP_STORAGE_KEY_EMPLOYEES = 'sr_checker_employees_v1';
+
+    // デモ用プリセットデータ（リアルな中小企業シナリオ）
+    const DEMO_EMPLOYEES = [
+      { id: 'emp-1', code: 'EMP-001', name: '佐藤 健一', dept: '営業部', role: '部長', type: '正社員', status: '在籍中', joinDate: '2018-04-01', retireDate: '' },
+      { id: 'emp-2', code: 'EMP-002', name: '鈴木 恵子', dept: '総務人事部', role: '課長', type: '正社員', status: '在籍中', joinDate: '2020-01-15', retireDate: '' },
+      { id: 'emp-3', code: 'EMP-003', name: '高橋 雄介', dept: '開発部', role: 'リーダー', type: '正社員', status: '在籍中', joinDate: '2021-06-01', retireDate: '' },
+      { id: 'emp-4', code: 'EMP-004', name: '田中 友香', dept: '営業部', role: '一般', type: '正社員', status: '退職済', joinDate: '2022-04-01', retireDate: '2026-08-31' }, // 退職者（未回収リスク用）
+      { id: 'emp-5', code: 'EMP-005', name: '伊藤 翔太', dept: 'マーケティング部', role: '主任', type: '正社員', status: '退職予定', joinDate: '2023-02-01', retireDate: '2026-09-30' }, // 退職予定
+      { id: 'emp-6', code: 'EMP-006', name: '渡辺 真奈', dept: '総務部', role: '事務', type: '契約社員', status: '休職中', joinDate: '2023-05-01', retireDate: '' },
+      { id: 'emp-7', code: 'EMP-007', name: '小林 誠', dept: '開発部', role: 'エンジニア', type: '業務委託', status: '在籍中', joinDate: '2024-01-10', retireDate: '' },
+      { id: 'emp-8', code: 'EMP-008', name: '加藤 直樹', dept: '営業部', role: '一般', type: '正社員', status: '在籍中', joinDate: '2024-04-01', retireDate: '' } // PC未割当
+    ];
+
+    const DEMO_DEVICES = [
+      { id: 'dev-1', code: 'PC-2022-01', type: 'ノートPC', model: 'ThinkPad T14 Gen2', os: 'Windows 11 Pro', user: '佐藤 健一', dept: '営業部', status: '貸与中', loanDate: '2022-04-10', takeout: 'あり', encrypted: '設定済', pledge: '回収済', lastCheck: '2026-04-15', memo: '持ち出し用' },
+      { id: 'dev-2', code: 'PC-2022-02', type: 'デスクトップPC', model: 'Dell OptiPlex 7090', os: 'Windows 11 Pro', user: '鈴木 恵子', dept: '総務人事部', status: '貸与中', loanDate: '2022-05-01', takeout: 'なし', encrypted: '設定済', pledge: '回収済', lastCheck: '2026-04-20', memo: '人事用マイナンバー取扱端末' },
+      { id: 'dev-3', code: 'PC-2023-01', type: 'ノートPC', model: 'MacBook Pro 14', os: 'macOS 14 Sonoma', user: '高橋 雄介', dept: '開発部', status: '貸与中', loanDate: '2023-06-01', takeout: 'あり', encrypted: '設定済', pledge: '回収済', lastCheck: '2026-05-10', memo: 'メイン開発機' },
+      { id: 'dev-4', code: 'PC-2022-05', type: 'ノートPC', model: 'ThinkPad X13', os: 'Windows 11 Pro', user: '田中 友香', dept: '営業部', status: '貸与中', loanDate: '2022-04-05', takeout: 'あり', encrypted: '設定済', pledge: '回収済', lastCheck: '2025-10-15', memo: '🚨 退職日(8/31)超過だが返却台帳が貸与中のまま未回収！' },
+      { id: 'dev-5', code: 'PC-2023-08', type: 'ノートPC', model: 'HP ProBook 450', os: 'Windows 10 Pro', user: '伊藤 翔太', dept: 'マーケティング部', status: '貸与中', loanDate: '2023-02-15', takeout: 'あり', encrypted: '未設定', pledge: '未回収', lastCheck: '2025-08-20', memo: '⚠️ 9月末退職予定、暗号化未実施かつ誓約書未回収' },
+      { id: 'dev-6', code: 'PC-2021-99', type: 'ノートPC', model: 'Let\'s note CF-SV9', os: 'Windows 10 Pro', user: '吉田 健司', dept: '旧企画部', status: '貸与中', loanDate: '2021-08-01', takeout: 'あり', encrypted: '未設定', pledge: '未回収', lastCheck: '2024-03-01', memo: '👤 社員台帳に存在しない使用者名（退職者の放置幽霊端末）' },
+      { id: 'dev-7', code: 'SP-2023-01', type: 'スマートフォン', model: 'iPhone 13', os: 'iOS 17', user: '佐藤 健一', dept: '営業部', status: '貸与中', loanDate: '2023-04-01', takeout: 'あり', encrypted: '設定済', pledge: '未回収', lastCheck: '2026-04-15', memo: '営業用スマホ（スマホ誓約書未提出）' },
+      { id: 'dev-8', code: 'WF-2023-01', type: 'モバイルWi-Fiルーター', model: 'Speed Wi-Fi 5G X11', os: 'ー', user: '田中 友香', dept: '営業部', status: '貸与中', loanDate: '2023-04-10', takeout: 'あり', encrypted: '対象外', pledge: '未回収', lastCheck: '2025-10-15', memo: '🚨 退職者のWi-Fiルーター未回収' },
+      { id: 'dev-9', code: 'PC-2024-01', type: 'ノートPC', model: 'Dell Latitude 3520', os: 'Windows 11 Pro', user: '', dept: '総務部', status: '保管中', loanDate: '', takeout: 'なし', encrypted: '設定済', pledge: '回収済', lastCheck: '2026-08-01', memo: '新入社員用ストック' },
+      { id: 'dev-10', code: 'PC-2020-09', type: 'ノートPC', model: 'dynabook B65', os: 'Windows 10 Pro', user: '渡辺 真奈', dept: '総務部', status: '貸与中', loanDate: '2023-05-10', takeout: 'あり', encrypted: '設定済', pledge: '回収済', lastCheck: '2026-03-01', memo: '現在休職中だが自宅に端末所持のまま' }
+    ];
+
+    class App {
+      constructor() {
+        this.devices = [];
+        this.employees = [];
+        this.risks = [];
+        this.currentTab = 'dashboard';
+        this.init();
+      }
+
+      init() {
+        this.loadData();
+        this.analyzeRisks();
+        this.renderAll();
+        this.renderReport();
+      }
+
+      loadData() {
+        const savedDevices = localStorage.getItem(APP_STORAGE_KEY_DEVICES);
+        const savedEmployees = localStorage.getItem(APP_STORAGE_KEY_EMPLOYEES);
+
+        if (savedDevices && savedEmployees) {
+          try {
+            this.devices = JSON.parse(savedDevices);
+            this.employees = JSON.parse(savedEmployees);
+          } catch(e) {
+            console.error('Failed to parse localstorage, loading demo', e);
+            this.loadDemoData(false);
+          }
+        } else {
+          this.loadDemoData(false);
+        }
+      }
+
+      saveData() {
+        localStorage.setItem(APP_STORAGE_KEY_DEVICES, JSON.stringify(this.devices));
+        localStorage.setItem(APP_STORAGE_KEY_EMPLOYEES, JSON.stringify(this.employees));
+        this.analyzeRisks();
+        this.renderAll();
+        this.renderReport();
+      }
+
+      loadDemoData(notify = true) {
+        this.devices = JSON.parse(JSON.stringify(DEMO_DEVICES));
+        this.employees = JSON.parse(JSON.stringify(DEMO_EMPLOYEES));
+        this.saveData();
+        if (notify) {
+          alert('デモ用サンプルデータ（退職者未返却・誓約書未取得などのシナリオ）を再読込しました。');
+        }
+      }
+
+      clearAllData() {
+        if (confirm('すべての登録端末・社員データを消去して空にしますか？')) {
+          this.devices = [];
+          this.employees = [];
+          this.saveData();
+        }
+      }
+
+      switchTab(tabName) {
+        this.currentTab = tabName;
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(el => {
+          el.classList.remove('active', 'text-white', 'bg-slate-800');
+          el.classList.add('text-slate-400');
+        });
+
+        const targetSection = document.getElementById(`section-${tabName}`);
+        const targetBtn = document.getElementById(`tab-btn-${tabName}`);
+        if (targetSection) targetSection.classList.remove('hidden');
+        if (targetBtn) {
+          targetBtn.classList.add('active', 'text-white', 'bg-slate-800');
+          targetBtn.classList.remove('text-slate-400');
+        }
+
+        if (tabName === 'report') {
+          this.renderReport();
+        }
+      }
+
+      // 労務・セキュリティリスク自動分析エンジン
+      analyzeRisks() {
+        this.risks = [];
+        const empMap = new Map();
+        this.employees.forEach(emp => empMap.set(emp.name.trim(), emp));
+
+        const now = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(now.getMonth() - 6);
+
+        // 1. 端末視点のチェック
+        this.devices.forEach(dev => {
+          if (dev.status === '廃棄') return;
+
+          const userName = (dev.user || '').trim();
+
+          // A: 退職者未返却リスク (最重要)
+          if (dev.status === '貸与中' && userName) {
+            const emp = empMap.get(userName);
+            if (emp && emp.status === '退職済') {
+              this.risks.push({
+                severity: 'CRITICAL',
+                category: 'RETIRED',
+                title: '退職者への端末貸与・未返却放置',
+                deviceId: dev.id,
+                deviceCode: dev.code,
+                deviceModel: `${dev.type} (${dev.model})`,
+                user: userName,
+                reason: `退職日: ${emp.retireDate || '退職済'}。退職後も返却されず貸与中のままです。`,
+                action: '【至急回収】直ちに本人へ督促状・返却キットを送付し、アカウント/VPNを遮断してください。'
+              });
+            } else if (emp && emp.status === '退職予定') {
+              this.risks.push({
+                severity: 'HIGH',
+                category: 'RETIRED',
+                title: '退職予定者の貸与端末（回収事前準備）',
+                deviceId: dev.id,
+                deviceCode: dev.code,
+                deviceModel: `${dev.type} (${dev.model})`,
+                user: userName,
+                reason: `退職予定日: ${emp.retireDate || '近日中'}。最終出社日までの返却計画が必要です。`,
+                action: '【事前手続き】退職時誓約書およびデータ消去立ち会いのスケジュールを確定してください。'
+              });
+            } else if (emp && emp.status === '休職中') {
+              this.risks.push({
+                severity: 'MEDIUM',
+                category: 'RETIRED',
+                title: '休職者による社外端末保持',
+                deviceId: dev.id,
+                deviceCode: dev.code,
+                deviceModel: `${dev.type} (${dev.model})`,
+                user: userName,
+                reason: '休職中ですが端末が返却されていません。',
+                action: '休職規程に基づき、休職期間中の端末一時返却（社内保管）の適用を検討してください。'
+              });
+            } else if (!emp) {
+              // B: 幽霊端末（社員名簿にない人物）
+              this.risks.push({
+                severity: 'HIGH',
+                category: 'GHOST',
+                title: '台帳不整合・使用者不明（幽霊端末）',
+                deviceId: dev.id,
+                deviceCode: dev.code,
+                deviceModel: `${dev.type} (${dev.model})`,
+                user: userName,
+                reason: '社員名簿（人事データ）に使用者名が存在しません。過去の退職者や委託先の可能性があります。',
+                action: '【現況確認】実機の所在を確認し、社員台帳への追記または回収・保管手続きを行ってください。'
+              });
+            }
+          }
+
+          // C: 誓約書未回収
+          if (dev.status === '貸与中' && dev.pledge === '未回収') {
+            this.risks.push({
+              severity: 'HIGH',
+              category: 'PLEDGE',
+              title: '情報機器貸与誓約書・秘密保持の未回収',
+              deviceId: dev.id,
+              deviceCode: dev.code,
+              deviceModel: `${dev.type} (${dev.model})`,
+              user: userName || '使用者未設定',
+              reason: '端末貸与に関する遵守事項・私的利用禁止誓約書が未回収です。',
+              action: '【誓約書徴収】社労士標準フォーマットの「情報機器貸与誓約書」を速やかに締結させてください。'
+            });
+          }
+
+          // D: テレワーク・持ち出しセキュリティ不備
+          if (dev.status === '貸与中' && dev.takeout === 'あり' && dev.encrypted === '未設定') {
+            this.risks.push({
+              severity: 'HIGH',
+              category: 'SECURITY',
+              title: '社外持ち出し端末のストレージ未暗号化',
+              deviceId: dev.id,
+              deviceCode: dev.code,
+              deviceModel: `${dev.type} (${dev.model})`,
+              user: userName || '未設定',
+              reason: '社外持ち出し許可があるノートPC等でBitLocker/FileVault暗号化が未設定です。紛失時の情報漏洩リスク大。',
+              action: '【暗号化強制】直ちにOSストレージ暗号化を実施し、設定完了まで持ち出しを一時停止してください。'
+            });
+          }
+
+          // E: 棚卸し期限超過
+          if (dev.lastCheck) {
+            const checkDate = new Date(dev.lastCheck);
+            if (checkDate < sixMonthsAgo && dev.status !== '保管中') {
+              this.risks.push({
+                severity: 'LOW',
+                category: 'INVENTORY',
+                title: '現物棚卸し点検の未実施（半年以上経過）',
+                deviceId: dev.id,
+                deviceCode: dev.code,
+                deviceModel: `${dev.type} (${dev.model})`,
+                user: userName || '未設定',
+                reason: `最終点検日: ${dev.lastCheck}。6ヶ月以上現物確認が行われていません。`,
+                action: '半期ごとの現物写真提出またはシリアル照合点検を実施してください。'
+              });
+            }
+          }
+        });
+
+        // 2. 社員視点のチェック（PC未貸与など）
+        const userDeviceCounts = {};
+        this.devices.forEach(d => {
+          if (d.status === '貸与中' && d.user) {
+            userDeviceCounts[d.user] = (userDeviceCounts[d.user] || 0) + 1;
+          }
+        });
+
+        this.employees.forEach(emp => {
+          if (emp.status === '在籍中' && emp.role !== '一般事務パート') {
+            const count = userDeviceCounts[emp.name] || 0;
+            if (count === 0 && emp.type === '正社員') {
+              this.risks.push({
+                severity: 'LOW',
+                category: 'INVENTORY',
+                title: '在籍社員への端末割当なし（シャドーITリスク）',
+                deviceId: '-',
+                deviceCode: '-',
+                deviceModel: '未割当',
+                user: emp.name,
+                reason: '正社員ですが会社端末の割当台帳記録がありません。私物PC等を無許可利用している可能性があります。',
+                action: '私物端末業務利用（BYOD）の有無を確認し、会社支給またはBYOD許可誓約書を整備してください。'
+              });
+            }
+          }
+        });
+      }
+
+      renderAll() {
+        this.renderKPIs();
+        this.renderRiskList();
+        this.renderDevicesTable();
+        this.renderEmployeesTable();
+      }
+
+      renderKPIs() {
+        const total = this.devices.length;
+        const loaned = this.devices.filter(d => d.status === '貸与中').length;
+        const stored = this.devices.filter(d => d.status === '保管中').length;
+
+        document.getElementById('kpi-total-devices').innerText = total;
+        document.getElementById('kpi-loaned-devices').innerText = `貸与中: ${loaned}台 / 保管: ${stored}台`;
+        document.getElementById('badge-device-count').innerText = total;
+        document.getElementById('badge-employee-count').innerText = this.employees.length;
+
+        const retiredRisks = this.risks.filter(r => r.category === 'RETIRED').length;
+        const pledgeRisks = this.risks.filter(r => r.category === 'PLEDGE').length;
+        const secRisks = this.risks.filter(r => r.category === 'SECURITY').length;
+        const ghostRisks = this.risks.filter(r => r.category === 'GHOST').length;
+
+        document.getElementById('kpi-retired-unreturned').innerText = retiredRisks;
+        document.getElementById('kpi-pledge-missing').innerText = pledgeRisks;
+        document.getElementById('kpi-security-inadequate').innerText = secRisks;
+        document.getElementById('kpi-ghost-devices').innerText = ghostRisks;
+
+        const totalRisks = this.risks.length;
+        document.getElementById('badge-total-risks').innerText = totalRisks;
+
+        // 総合評価ランク計算
+        let rank = 'A';
+        let rankText = '優良（リスク極小）';
+        let rankDesc = '端末管理と労務規程の運用が適切に行われています。';
+        let rankColor = 'text-emerald-600';
+
+        const criticalCount = this.risks.filter(r => r.severity === 'CRITICAL').length;
+        const highCount = this.risks.filter(r => r.severity === 'HIGH').length;
+
+        if (criticalCount > 0) {
+          rank = 'D';
+          rankText = '要至急改善（重大リスクあり）';
+          rankDesc = '退職者の端末未回収等、重大な法的・セキュリティリスクが検知されています。';
+          rankColor = 'text-rose-600';
+        } else if (highCount >= 2) {
+          rank = 'C';
+          rankText = '警告（早急な対応が必要）';
+          rankDesc = '誓約書未取得や暗号化未実施など複数の規程違反が確認されています。';
+          rankColor = 'text-orange-600';
+        } else if (totalRisks > 0) {
+          rank = 'B';
+          rankText = '要注意（改善推奨）';
+          rankDesc = '軽微な不整合や定期棚卸しの遅れが見られます。';
+          rankColor = 'text-amber-600';
+        }
+
+        const rankEl = document.getElementById('summary-rank');
+        rankEl.innerText = rank;
+        rankEl.className = `text-3xl font-black ${rankColor}`;
+        document.getElementById('summary-rank-text').innerText = rankText;
+        document.getElementById('summary-rank-desc').innerText = rankDesc;
+      }
+
+      renderRiskList() {
+        const filter = document.getElementById('filter-risk-category').value;
+        const tbody = document.getElementById('risk-table-body');
+        tbody.innerHTML = '';
+
+        const filtered = this.risks.filter(r => {
+          if (filter === 'ALL') return true;
+          return r.category === filter;
+        });
+
+        document.getElementById('risk-table-count').innerText = `${filtered.length}件`;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-400">現在、該当する労務セキュリティリスクは検出されていません。</td></tr>`;
+          return;
+        }
+
+        filtered.forEach(r => {
+          let badgeClass = 'bg-slate-100 text-slate-700';
+          let badgeText = '低';
+          if (r.severity === 'CRITICAL') {
+            badgeClass = 'bg-rose-100 text-rose-800 font-bold border border-rose-300';
+            badgeText = '重大🚨';
+          } else if (r.severity === 'HIGH') {
+            badgeClass = 'bg-orange-100 text-orange-800 font-semibold';
+            badgeText = '高⚠️';
+          } else if (r.severity === 'MEDIUM') {
+            badgeClass = 'bg-amber-100 text-amber-800';
+            badgeText = '中';
+          }
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+          tr.innerHTML = `
+            <td class="py-3 px-4 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-xs ${badgeClass}">${badgeText}</span></td>
+            <td class="py-3 px-4 whitespace-nowrap font-medium text-slate-900">${this.escapeHTML(r.title)}</td>
+            <td class="py-3 px-4 whitespace-nowrap text-slate-600 font-mono text-xs">${this.escapeHTML(r.deviceCode)}<br><span class="text-slate-400 font-sans">${this.escapeHTML(r.deviceModel)}</span></td>
+            <td class="py-3 px-4 whitespace-nowrap font-medium text-slate-800">${this.escapeHTML(r.user)}</td>
+            <td class="py-3 px-4 text-slate-600 max-w-xs text-xs">${this.escapeHTML(r.reason)}</td>
+            <td class="py-3 px-4 text-sky-900 bg-sky-50/50 max-w-sm text-xs font-medium">${this.escapeHTML(r.action)}</td>
+            <td class="py-3 px-4 whitespace-nowrap text-center">
+              <button onclick="app.editDeviceById('${r.deviceId}')" class="text-sky-600 hover:text-sky-800 text-xs font-semibold underline">台帳を確認</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderDevicesTable() {
+        const query = (document.getElementById('search-devices').value || '').toLowerCase();
+        const statusFilter = document.getElementById('filter-device-status').value;
+        const riskFilter = document.getElementById('filter-device-risk').value;
+        const tbody = document.getElementById('devices-table-body');
+        tbody.innerHTML = '';
+
+        const riskDeviceIds = new Set(this.risks.map(r => r.deviceId));
+
+        const filtered = this.devices.filter(d => {
+          if (statusFilter !== 'ALL' && d.status !== statusFilter) return false;
+          if (riskFilter === 'RISK_ONLY' && !riskDeviceIds.has(d.id)) return false;
+          if (query) {
+            const str = `${d.code} ${d.type} ${d.model} ${d.user} ${d.dept}`.toLowerCase();
+            if (!str.includes(query)) return false;
+          }
+          return true;
+        });
+
+        document.getElementById('devices-count-label').innerText = `表示: ${filtered.length} / 全 ${this.devices.length} 件`;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="12" class="py-6 text-center text-slate-400">該当する端末はありません。</td></tr>`;
+          return;
+        }
+
+        filtered.forEach(d => {
+          const hasRisk = riskDeviceIds.has(d.id);
+          const tr = document.createElement('tr');
+          tr.className = `hover:bg-slate-50 transition ${hasRisk ? 'bg-rose-50/20' : ''}`;
+
+          let statusBadge = 'bg-slate-100 text-slate-700';
+          if (d.status === '貸与中') statusBadge = 'bg-sky-100 text-sky-800 font-medium';
+          else if (d.status === '保管中') statusBadge = 'bg-emerald-100 text-emerald-800';
+          else if (d.status === '修理中') statusBadge = 'bg-amber-100 text-amber-800';
+
+          tr.innerHTML = `
+            <td class="py-2 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">${this.escapeHTML(d.code)}</td>
+            <td class="py-2 px-3 whitespace-nowrap">${this.escapeHTML(d.type)}</td>
+            <td class="py-2 px-3 text-slate-700 font-medium">${this.escapeHTML(d.model)}</td>
+            <td class="py-2 px-3 font-semibold text-slate-900 whitespace-nowrap">${this.escapeHTML(d.user || 'ー')}</td>
+            <td class="py-2 px-3 text-slate-600 whitespace-nowrap">${this.escapeHTML(d.dept || 'ー')}</td>
+            <td class="py-2 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-xs ${statusBadge}">${this.escapeHTML(d.status)}</span></td>
+            <td class="py-2 px-3 whitespace-nowrap font-mono text-slate-500">${this.escapeHTML(d.loanDate || 'ー')}</td>
+            <td class="py-2 px-3 text-center">${d.takeout === 'あり' ? '<span class="text-sky-600 font-bold">可</span>' : '<span class="text-slate-400">不可</span>'}</td>
+            <td class="py-2 px-3 text-center">${d.encrypted === '設定済' ? '<span class="text-emerald-600 font-bold">済</span>' : (d.encrypted === '未設定' ? '<span class="text-rose-600 font-bold">未!</span>' : 'ー')}</td>
+            <td class="py-2 px-3 text-center">${d.pledge === '回収済' ? '<span class="text-emerald-600 font-bold">済</span>' : '<span class="text-amber-600 font-bold">未回収!</span>'}</td>
+            <td class="py-2 px-3">
+              ${hasRisk ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">⚠️ 要是正</span>' : '<span class="text-emerald-600 text-xs">正常</span>'}
+            </td>
+            <td class="py-2 px-3 whitespace-nowrap text-center space-x-1">
+              <button onclick="app.editDeviceById('${d.id}')" class="text-sky-600 hover:text-sky-800 font-medium">編集</button>
+              <button onclick="app.deleteDevice('${d.id}')" class="text-rose-600 hover:text-rose-800 font-medium">削除</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderEmployeesTable() {
+        const query = (document.getElementById('search-employees').value || '').toLowerCase();
+        const statusFilter = document.getElementById('filter-employee-status').value;
+        const tbody = document.getElementById('employees-table-body');
+        tbody.innerHTML = '';
+
+        const userDeviceCounts = {};
+        this.devices.forEach(d => {
+          if (d.status === '貸与中' && d.user) {
+            userDeviceCounts[d.user] = (userDeviceCounts[d.user] || 0) + 1;
+          }
+        });
+
+        const filtered = this.employees.filter(e => {
+          if (statusFilter !== 'ALL' && e.status !== statusFilter) return false;
+          if (query) {
+            const str = `${e.code} ${e.name} ${e.dept} ${e.role}`.toLowerCase();
+            if (!str.includes(query)) return false;
+          }
+          return true;
+        });
+
+        document.getElementById('employees-count-label').innerText = `表示: ${filtered.length} / 全 ${this.employees.length} 名`;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-slate-400">該当する社員はいません。</td></tr>`;
+          return;
+        }
+
+        filtered.forEach(e => {
+          const deviceCount = userDeviceCounts[e.name] || 0;
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+
+          let statusClass = 'bg-slate-100 text-slate-700';
+          if (e.status === '在籍中') statusClass = 'bg-emerald-100 text-emerald-800';
+          else if (e.status === '退職済') statusClass = 'bg-rose-100 text-rose-800 font-bold';
+          else if (e.status === '退職予定') statusClass = 'bg-orange-100 text-orange-800 font-bold';
+          else if (e.status === '休職中') statusClass = 'bg-amber-100 text-amber-800';
+
+          let checkStatus = '<span class="text-emerald-600">良好</span>';
+          if (e.status === '退職済' && deviceCount > 0) {
+            checkStatus = '<span class="text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded">🚨 未回収端末あり!</span>';
+          } else if (e.status === '在籍中' && deviceCount === 0 && e.type === '正社員') {
+            checkStatus = '<span class="text-amber-600 font-medium">PC未貸与 (要確認)</span>';
+          }
+
+          tr.innerHTML = `
+            <td class="py-2 px-3 font-mono font-bold text-slate-900">${this.escapeHTML(e.code)}</td>
+            <td class="py-2 px-3 font-semibold text-slate-900">${this.escapeHTML(e.name)}</td>
+            <td class="py-2 px-3 text-slate-600">${this.escapeHTML(e.dept)}</td>
+            <td class="py-2 px-3 text-slate-600">${this.escapeHTML(e.role)}</td>
+            <td class="py-2 px-3 text-slate-600">${this.escapeHTML(e.type)}</td>
+            <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-xs ${statusClass}">${this.escapeHTML(e.status)}</span></td>
+            <td class="py-2 px-3 font-mono text-slate-500">${this.escapeHTML(e.joinDate || 'ー')}</td>
+            <td class="py-2 px-3 font-mono text-rose-600 font-semibold">${this.escapeHTML(e.retireDate || 'ー')}</td>
+            <td class="py-2 px-3 font-bold ${deviceCount > 0 ? 'text-sky-700' : 'text-slate-400'}">${deviceCount} 台</td>
+            <td class="py-2 px-3">${checkStatus}</td>
+            <td class="py-2 px-3 whitespace-nowrap text-center space-x-1">
+              <button onclick="app.editEmployeeById('${e.id}')" class="text-sky-600 hover:text-sky-800 font-medium">編集</button>
+              <button onclick="app.deleteEmployee('${e.id}')" class="text-rose-600 hover:text-rose-800 font-medium">削除</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderReport() {
+        const total = this.devices.length;
+        const loaned = this.devices.filter(d => d.status === '貸与中').length;
+        const stored = this.devices.filter(d => d.status === '保管中').length;
+        const riskCount = this.risks.length;
+
+        document.getElementById('rep-stat-total').innerText = total;
+        document.getElementById('rep-stat-loaned').innerText = loaned;
+        document.getElementById('rep-stat-stored').innerText = stored;
+        document.getElementById('rep-stat-risks').innerText = riskCount;
+
+        // ランク
+        const rank = document.getElementById('summary-rank').innerText;
+        const rankTitle = document.getElementById('summary-rank-text').innerText;
+        document.getElementById('report-score-rank').innerText = rank;
+        document.getElementById('report-score-title').innerText = rankTitle;
+
+        // リスクリスト
+        const reportRiskContainer = document.getElementById('report-risk-items');
+        reportRiskContainer.innerHTML = '';
+
+        if (this.risks.length === 0) {
+          reportRiskContainer.innerHTML = `<p class="text-slate-500 italic p-3 bg-slate-50 rounded">現在、要是正事項はありません。適正に運用されています。</p>`;
+          return;
+        }
+
+        this.risks.slice(0, 6).forEach((r, idx) => {
+          const div = document.createElement('div');
+          div.className = 'p-3 bg-slate-50 rounded border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2';
+          div.innerHTML = `
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-slate-900">${idx + 1}. ${this.escapeHTML(r.title)}</span>
+                <span class="text-xs px-1.5 py-0.5 rounded ${r.severity === 'CRITICAL' ? 'bg-rose-100 text-rose-800 font-bold' : 'bg-orange-100 text-orange-800'}">${r.severity}</span>
+              </div>
+              <p class="text-slate-600 mt-0.5">対象: <strong>${this.escapeHTML(r.user)}</strong> (端末: ${this.escapeHTML(r.deviceCode)} - ${this.escapeHTML(r.deviceModel)}) / 理由: ${this.escapeHTML(r.reason)}</p>
+            </div>
+            <div class="shrink-0 text-sky-800 font-semibold bg-sky-50 px-2.5 py-1.5 rounded text-xs border border-sky-200">
+              ${this.escapeHTML(r.action)}
+            </div>
+          `;
+          reportRiskContainer.appendChild(div);
+        });
+      }
+
+      // モーダル操作: 端末
+      openDeviceModal(device = null) {
+        const form = document.getElementById('device-form');
+        form.reset();
+
+        if (device) {
+          document.getElementById('device-modal-title').innerText = '端末情報の編集';
+          document.getElementById('form-device-id').value = device.id;
+          document.getElementById('form-device-code').value = device.code;
+          document.getElementById('form-device-type').value = device.type;
+          document.getElementById('form-device-model').value = device.model || '';
+          document.getElementById('form-device-os').value = device.os || '';
+          document.getElementById('form-device-user').value = device.user || '';
+          document.getElementById('form-device-dept').value = device.dept || '';
+          document.getElementById('form-device-status').value = device.status;
+          document.getElementById('form-device-loandate').value = device.loanDate || '';
+          document.getElementById('form-device-takeout').value = device.takeout || 'あり';
+          document.getElementById('form-device-encrypted').value = device.encrypted || '設定済';
+          document.getElementById('form-device-pledge').value = device.pledge || '回収済';
+          document.getElementById('form-device-lastcheck').value = device.lastCheck || '';
+          document.getElementById('form-device-memo').value = device.memo || '';
+        } else {
+          document.getElementById('device-modal-title').innerText = '端末情報の新規追加';
+          document.getElementById('form-device-id').value = '';
+          document.getElementById('form-device-code').value = `PC-2026-${String(this.devices.length + 1).padStart(2, '0')}`;
+          document.getElementById('form-device-status').value = '貸与中';
+          document.getElementById('form-device-takeout').value = 'あり';
+          document.getElementById('form-device-encrypted').value = '設定済';
+          document.getElementById('form-device-pledge').value = '回収済';
+          document.getElementById('form-device-lastcheck').value = new Date().toISOString().split('T')[0];
+        }
+
+        document.getElementById('device-modal').classList.remove('hidden');
+      }
+
+      closeDeviceModal() {
+        document.getElementById('device-modal').classList.add('hidden');
+      }
+
+      editDeviceById(id) {
+        const dev = this.devices.find(d => d.id === id);
+        if (dev) this.openDeviceModal(dev);
+      }
+
+      saveDevice(e) {
+        e.preventDefault();
+        const id = document.getElementById('form-device-id').value || `dev-${Date.now()}`;
+        const newDevice = {
+          id: id,
+          code: document.getElementById('form-device-code').value.trim(),
+          type: document.getElementById('form-device-type').value,
+          model: document.getElementById('form-device-model').value.trim(),
+          os: document.getElementById('form-device-os').value.trim(),
+          user: document.getElementById('form-device-user').value.trim(),
+          dept: document.getElementById('form-device-dept').value.trim(),
+          status: document.getElementById('form-device-status').value,
+          loanDate: document.getElementById('form-device-loandate').value,
+          takeout: document.getElementById('form-device-takeout').value,
+          encrypted: document.getElementById('form-device-encrypted').value,
+          pledge: document.getElementById('form-device-pledge').value,
+          lastCheck: document.getElementById('form-device-lastcheck').value,
+          memo: document.getElementById('form-device-memo').value.trim()
+        };
+
+        const idx = this.devices.findIndex(d => d.id === id);
+        if (idx >= 0) {
+          this.devices[idx] = newDevice;
+        } else {
+          this.devices.push(newDevice);
+        }
+
+        this.closeDeviceModal();
+        this.saveData();
+      }
+
+      deleteDevice(id) {
+        if (confirm('この端末情報を台帳から削除しますか？')) {
+          this.devices = this.devices.filter(d => d.id !== id);
+          this.saveData();
+        }
+      }
+
+      // モーダル操作: 社員
+      openEmployeeModal(emp = null) {
+        const form = document.getElementById('employee-form');
+        form.reset();
+
+        if (emp) {
+          document.getElementById('employee-modal-title').innerText = '社員情報の編集';
+          document.getElementById('form-emp-id').value = emp.id;
+          document.getElementById('form-emp-code').value = emp.code;
+          document.getElementById('form-emp-name').value = emp.name;
+          document.getElementById('form-emp-dept').value = emp.dept || '';
+          document.getElementById('form-emp-role').value = emp.role || '';
+          document.getElementById('form-emp-type').value = emp.type || '正社員';
+          document.getElementById('form-emp-status').value = emp.status || '在籍中';
+          document.getElementById('form-emp-joindate').value = emp.joinDate || '';
+          document.getElementById('form-emp-retiredate').value = emp.retireDate || '';
+        } else {
+          document.getElementById('employee-modal-title').innerText = '社員情報の新規追加';
+          document.getElementById('form-emp-id').value = '';
+          document.getElementById('form-emp-code').value = `EMP-${String(this.employees.length + 1).padStart(3, '0')}`;
+          document.getElementById('form-emp-status').value = '在籍中';
+          document.getElementById('form-emp-type').value = '正社員';
+        }
+
+        document.getElementById('employee-modal').classList.remove('hidden');
+      }
+
+      closeEmployeeModal() {
+        document.getElementById('employee-modal').classList.add('hidden');
+      }
+
+      editEmployeeById(id) {
+        const emp = this.employees.find(e => e.id === id);
+        if (emp) this.openEmployeeModal(emp);
+      }
+
+      saveEmployee(e) {
+        e.preventDefault();
+        const id = document.getElementById('form-emp-id').value || `emp-${Date.now()}`;
+        const newEmp = {
+          id: id,
+          code: document.getElementById('form-emp-code').value.trim(),
+          name: document.getElementById('form-emp-name').value.trim(),
+          dept: document.getElementById('form-emp-dept').value.trim(),
+          role: document.getElementById('form-emp-role').value.trim(),
+          type: document.getElementById('form-emp-type').value,
+          status: document.getElementById('form-emp-status').value,
+          joinDate: document.getElementById('form-emp-joindate').value,
+          retireDate: document.getElementById('form-emp-retiredate').value
+        };
+
+        const idx = this.employees.findIndex(e => e.id === id);
+        if (idx >= 0) {
+          this.employees[idx] = newEmp;
+        } else {
+          this.employees.push(newEmp);
+        }
+
+        this.closeEmployeeModal();
+        this.saveData();
+      }
+
+      deleteEmployee(id) {
+        if (confirm('この社員情報を台帳から削除しますか？')) {
+          this.employees = this.employees.filter(e => e.id !== id);
+          this.saveData();
+        }
+      }
+
+      // ヘルプモーダル
+      openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); }
+      closeHelpModal() { document.getElementById('help-modal').classList.add('hidden'); }
+
+      // CSVエクスポート
+      exportCSV(type) {
+        let headers = [];
+        let rows = [];
+        let filename = '';
+
+        if (type === 'devices') {
+          headers = ['管理番号', '機器種別', 'メーカーモデル', 'OS', '使用者', '部署', 'ステータス', '貸与日', '社外持出', '暗号化', '誓約書', '最終棚卸日', '備考'];
+          rows = this.devices.map(d => [
+            d.code, d.type, d.model, d.os, d.user, d.dept, d.status, d.loanDate, d.takeout, d.encrypted, d.pledge, d.lastCheck, d.memo
+          ]);
+          filename = `端末台帳_${new Date().toISOString().split('T')[0]}.csv`;
+        } else if (type === 'employees') {
+          headers = ['社員番号', '氏名', '部署', '役職', '雇用区分', '在籍状況', '入社日', '退職日'];
+          rows = this.employees.map(e => [
+            e.code, e.name, e.dept, e.role, e.type, e.status, e.joinDate, e.retireDate
+          ]);
+          filename = `社員名簿_${new Date().toISOString().split('T')[0]}.csv`;
+        } else if (type === 'risks') {
+          headers = ['重要度', 'リスク分類', '対象端末', '使用者名', '検知理由', '推奨改善アクション'];
+          rows = this.risks.map(r => [
+            r.severity, r.title, r.deviceCode, r.user, r.reason, r.action
+          ]);
+          filename = `労務セキュリティリスク診断結果_${new Date().toISOString().split('T')[0]}.csv`;
+        }
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      // CSVインポート（簡易パーサー）
+      importCSV(type) {
+        const fileInput = document.getElementById(`import-${type}-file`);
+        if (!fileInput.files.length) {
+          alert('CSVファイルを選択してください。');
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+          if (lines.length <= 1) {
+            alert('有効なデータ行が見つかりませんでした。');
+            return;
+          }
+
+          let addedCount = 0;
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+            if (type === 'devices' && cols.length >= 2) {
+              this.devices.push({
+                id: `dev-${Date.now()}-${i}`,
+                code: cols[0] || `PC-${Date.now()}-${i}`,
+                type: cols[1] || 'ノートPC',
+                model: cols[2] || '',
+                os: cols[3] || '',
+                user: cols[4] || '',
+                dept: cols[5] || '',
+                status: cols[6] || '貸与中',
+                loanDate: cols[7] || '',
+                takeout: cols[8] || 'あり',
+                encrypted: cols[9] || '設定済',
+                pledge: cols[10] || '回収済',
+                lastCheck: cols[11] || '',
+                memo: cols[12] || ''
+              });
+              addedCount++;
+            }
+          }
+          this.saveData();
+          alert(`${addedCount}件のデータを取り込みました。`);
+          fileInput.value = '';
+        };
+        reader.readAsText(file, 'UTF-8');
+      }
+
+      escapeHTML(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+    }
+
+    const app = new App();
+  </script>
+</body>
+</html>
